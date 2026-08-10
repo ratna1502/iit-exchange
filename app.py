@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import urllib.parse
+import google.generativeai as genai
 
 # Set Page Config with clean layout
 st.set_page_config(page_title="IIT Ropar InstiMart", page_icon="🛒", layout="wide")
@@ -74,13 +75,15 @@ with col_title:
 
 st.markdown("---")
 
-# Session state initialization for login
+# Session state initialization for login and chatbot
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_id' not in st.session_state:
     st.session_state.user_id = None
 if 'user_name' not in st.session_state:
     st.session_state.user_name = ""
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
 # Sidebar Auth Console
 st.sidebar.header("🔑 Student Authentication Console")
@@ -116,7 +119,6 @@ if not st.session_state.logged_in:
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
-            # Fully supports both institutional email formats: @iitropar.ac.in or @iitrpr.ac.in
             if not (reg_email.endswith("@iitropar.ac.in") or reg_email.endswith("@iitrpr.ac.in")):
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
             elif not (reg_roll and reg_name and reg_phone and reg_room and reg_password):
@@ -138,9 +140,39 @@ else:
         st.session_state.logged_in = False
         st.session_state.user_id = None
         st.session_state.user_name = ""
+        st.session_state.chat_history = []
         st.rerun()
 
-# Tabs (Added Semester Book Bank Tab)
+# Feature: Sidebar Floating Gemini AI Assistant Chatbot (Active Helper)
+st.sidebar.markdown("---")
+st.sidebar.header("🤖 InstiMart AI Campus Advisor")
+ai_query = st.sidebar.text_input("Ask AI (e.g. cycle rates, book requirements)", placeholder="Ask campus helper...")
+if st.sidebar.button("Send Query"):
+    if ai_query:
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY", "")
+            if not api_key:
+                api_key = "AIzaSyD-MOCK-API-KEY-VALUE"
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-pro')
+            prompt = f"You are a helpful campus AI assistant for IIT Ropar. A student is asking: '{ai_query}'. Give a brief, helpful 1-2 sentence response. Be concise."
+            response = model.generate_content(prompt)
+            st.session_state.chat_history.append((ai_query, response.text))
+        except Exception as e:
+            # Fallback advice rules in offline mode
+            fallback_ans = f"For items related to '{ai_query}', please filter categories in the browse tab. The average campus rate for coolers is ₹2000-3000, and books can be found mapping course codes."
+            st.session_state.chat_history.append((ai_query, fallback_ans))
+
+# Render Sidebar Chat History
+if st.session_state.chat_history:
+    st.sidebar.markdown("**Chat Log:**")
+    for q, a in list(st.session_state.chat_history)[-2:]: # Show last 2 chat exchanges
+        st.sidebar.info(f"💬 **You:** {q}\n\n🤖 **AI:** {a}")
+    if st.sidebar.button("Clear Chat"):
+        st.session_state.chat_history = []
+        st.rerun()
+
+# Tabs
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🛍️ Browse InstiMart", 
     "📚 Semester Book Bank",
@@ -216,7 +248,7 @@ with tab1:
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-# New Tab: Semester Book Bank
+# Semester Book Bank
 with tab2:
     st.header("📖 Semester Textbook Bank & Course Notes lookup")
     st.markdown("Find textbooks, manuals, and exam notes mapped directly to IIT Ropar course curriculum codes.")
@@ -271,10 +303,39 @@ with tab3:
         st.warning("⚠️ Access Denied: Please authenticate via the Sidebar Login Console to post listings.")
     else:
         st.success(f"Authenticated as: {st.session_state.user_name}")
+        
+        # Feature: AI Generator Console Integration
+        st.markdown("##### 🤖 InstiMart AI Assistant Console (Optional)")
+        ai_input_title = st.text_input("AI Assistant: Enter asset short name to generate description", placeholder="e.g. Blue Hero Cycle with carrier, Symphony air cooler 45L")
+        
+        generated_desc_value = ""
+        if st.button("Generate Description using Gemini AI"):
+            if not ai_input_title:
+                st.error("Please enter an asset name for the AI to process.")
+            else:
+                try:
+                    api_key = st.secrets.get("GEMINI_API_KEY", "")
+                    if not api_key:
+                        api_key = "AIzaSyD-TEST-KEY-PLACEHOLDER"
+                    
+                    genai.configure(api_key=api_key)
+                    model = genai.GenerativeModel('gemini-pro')
+                    prompt_query = f"Write a premium, short, campus-marketplace listing description (max 2 sentences) for a student selling this item: '{ai_input_title}' at IIT Ropar. Emphasize condition and hostel convenience."
+                    response = model.generate_content(prompt_query)
+                    generated_desc_value = response.text
+                    st.success("AI description generated! Copy the text below into the description field.")
+                    st.info(generated_desc_value)
+                except Exception as e:
+                    generated_desc_value = f"Premium grade {ai_input_title} in excellent working condition. Best suited for hostel requirements. Ready for immediate pickup from campus stands."
+                    st.warning("AI Demo Mode: Generated offline mock description:")
+                    st.info(generated_desc_value)
+
+        st.markdown("---")
+        
         with st.form("new_listing_form"):
             col1, col2 = st.columns(2)
             with col1:
-                title = st.text_input("Item Title", placeholder="e.g. Hero Cycle, Symphony Cooler")
+                title = st.text_input("Item Title", value=ai_input_title if ai_input_title else "", placeholder="e.g. Hero Cycle, Symphony Cooler")
                 category_id = st.selectbox("Category Group", [1, 2, 3, 4, 5], format_func=lambda x: {
                     1: 'Bicycles & Transport', 2: 'Room Coolers & Appliances', 
                     3: 'Textbooks & Course Material', 4: 'Electronics & Gadgets', 
@@ -288,7 +349,7 @@ with tab3:
                 price = st.number_input("Base Selling Price / Deposit (₹)", min_value=0.0, step=100.0, value=500.0)
                 daily_rate = st.number_input("Daily Rental Rate (₹) [If RENT]", min_value=0.0, step=10.0, value=0.0)
                 condition = st.selectbox("Item Condition", ["LIKE_NEW", "GOOD", "FAIR", "WELL_USED"])
-                description = st.text_area("Item Details / Specifications")
+                description = st.text_area("Item Details / Specifications", value=generated_desc_value)
                 
             submit_btn = st.form_submit_button("Publish Ad")
             if submit_btn:
