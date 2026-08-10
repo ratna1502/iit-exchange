@@ -27,8 +27,9 @@ def setup_database():
         (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123')
     ])
     
+    # Updated column from price -> base_price
     cursor.executemany('''
-        INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, price, listing_type, daily_rental_rate, item_condition, status)
+        INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
         (1, 1, 1, 'Hero Sprint 21-Speed Gear Bicycle', 'Good condition, new tires.', 3500.0, 'SALE', 0.0, 'GOOD', 'AVAILABLE'),
@@ -36,9 +37,18 @@ def setup_database():
         (3, 1, 3, 'CLRS Algorithms Book (4th Ed)', 'Hardcover, clean pages.', 800.0, 'SALE', 0.0, 'LIKE_NEW', 'AVAILABLE')
     ])
     
+    # Seeding initial bids
+    cursor.executemany('''
+        INSERT OR IGNORE INTO bids (bid_id, item_id, buyer_id, bid_amount, bid_status)
+        VALUES (?, ?, ?, ?, ?)
+    ''', [
+        (1, 1, 2, 3600.0, 'PENDING'),
+        (2, 1, 3, 3700.0, 'PENDING')
+    ])
+    
     conn.commit()
     conn.close()
-    print("Database initialized and sample data seeded successfully with security credentials!")
+    print("Database initialized and sample data seeded successfully with bidding engines!")
 
 if __name__ == '__main__':
     setup_database()
