@@ -19,7 +19,14 @@ CREATE TABLE IF NOT EXISTS categories (
     category_name TEXT NOT NULL UNIQUE
 );
 
--- 3. Item Listings Table (Added image_url column)
+-- 3. Courses Table (Added for Semester Book Bank Mapping)
+CREATE TABLE IF NOT EXISTS courses (
+    course_code TEXT PRIMARY KEY CHECK(length(course_code) >= 5), -- e.g. CS201, PH101
+    course_title TEXT NOT NULL,
+    department TEXT NOT NULL
+);
+
+-- 4. Item Listings Table (Supporting book conditions and visual tags)
 CREATE TABLE IF NOT EXISTS item_listings (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
     seller_id INTEGER NOT NULL,
@@ -27,18 +34,20 @@ CREATE TABLE IF NOT EXISTS item_listings (
     title TEXT NOT NULL,
     description TEXT,
     base_price REAL NOT NULL CHECK(base_price >= 0),
-    listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT')),
+    listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT', 'BOOK_DONATION')), -- Added BOOK_DONATION type
     daily_rental_rate REAL DEFAULT 0.0,
     item_condition TEXT CHECK(item_condition IN ('LIKE_NEW', 'GOOD', 'FAIR', 'WELL_USED')),
     image_url TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80',
     status TEXT DEFAULT 'AVAILABLE' CHECK(status IN ('AVAILABLE', 'RESERVED', 'SOLD', 'RENTED')),
     allow_bids INTEGER DEFAULT 1 CHECK(allow_bids IN (0, 1)),
+    course_mapping TEXT, -- Links textbook listings directly to a Course Code
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(seller_id) REFERENCES users(user_id),
-    FOREIGN KEY(category_id) REFERENCES categories(category_id)
+    FOREIGN KEY(category_id) REFERENCES categories(category_id),
+    FOREIGN KEY(course_mapping) REFERENCES courses(course_code) ON DELETE SET NULL
 );
 
--- 4. Bids Tracking Table
+-- 5. Bids Tracking Table
 CREATE TABLE IF NOT EXISTS bids (
     bid_id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
@@ -51,7 +60,7 @@ CREATE TABLE IF NOT EXISTS bids (
     CHECK(bid_amount > 0)
 );
 
--- 5. Transactions Table
+-- 6. Transactions Table
 CREATE TABLE IF NOT EXISTS transactions (
     tx_id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
@@ -66,6 +75,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_item_category ON item_listings(category_id);
 CREATE INDEX IF NOT EXISTS idx_item_status ON item_listings(status);
 CREATE INDEX IF NOT EXISTS idx_bids_item ON bids(item_id);
+CREATE INDEX IF NOT EXISTS idx_course ON item_listings(course_mapping);
 
 -- TRIGGER: Automatic Status Update & 2% Charity Allocation on Sale
 CREATE TRIGGER IF NOT EXISTS process_transaction_completion
@@ -91,7 +101,7 @@ BEGIN
     END;
 END;
 
--- VIEW: Marketplace Active Feed (Added i.description explicitly)
+-- VIEW: Marketplace Active Feed
 CREATE VIEW IF NOT EXISTS active_marketplace_feed AS
 SELECT 
     i.item_id,
@@ -101,14 +111,15 @@ SELECT
     i.listing_type,
     i.daily_rental_rate,
     i.item_condition,
-    i.description, -- Added column description to resolve KeyError
+    i.description,
     i.image_url,
     COALESCE(MAX(b.bid_amount), i.base_price) AS current_highest_offer,
     u.full_name AS seller_name,
     u.hostel_block,
     u.room_number,
     u.email AS seller_email,
-    u.phone AS seller_phone
+    u.phone AS seller_phone,
+    i.course_mapping -- Course Code parameter
 FROM item_listings i
 JOIN categories c ON i.category_id = c.category_id
 JOIN users u ON i.seller_id = u.user_id

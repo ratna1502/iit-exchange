@@ -139,9 +139,10 @@ else:
         st.session_state.user_name = ""
         st.rerun()
 
-# Tabs (Added My Dashboard Tab)
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+# Tabs (Added Semester Book Bank Tab)
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🛍️ Browse InstiMart", 
+    "📚 Semester Book Bank",
     "➕ Post New Ad (Login Required)", 
     "⚖️ Live Bidding Panel",
     "🤝 Settle Deal", 
@@ -152,10 +153,9 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 with tab1:
     st.header("Active Campus Listings")
     
-    # Feature 2: Search, Sort and Filter Engine
     col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
     with col_s1:
-        search_query = st.text_input("🔍 Search items (e.g. cycle, cooler, book)", placeholder="Type item name...")
+        search_query = st.text_input("🔍 Search items (e.g. cycle, cooler, book)", placeholder="Type item name...", key="browse_search")
     with col_s2:
         categories = ["ALL"] + [row[0] for row in conn.cursor().execute("SELECT category_name FROM categories").fetchall()]
         category_filter = st.selectbox("Category", categories)
@@ -175,7 +175,6 @@ with tab1:
         
     df_feed = pd.read_sql_query(query, conn)
     
-    # Visual Enhancements: Cards Grid + Feature 1 & 4 (Images & WhatsApp API Redirects)
     if df_feed.empty:
         st.info("No campus items matching the search query.")
     else:
@@ -185,7 +184,6 @@ with tab1:
                 col_img, col_info, col_contact = st.columns([1, 2, 1])
                 
                 with col_img:
-                    # Feature 1: Image Visual Rendering - Replaced use_container_width with use_column_width
                     img_link = row['image_url'] if row['image_url'] else 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80'
                     st.image(img_link, use_column_width=True)
                     
@@ -193,26 +191,80 @@ with tab1:
                     st.subheader(f"{row['title']} (ID: {row['item_id']})")
                     st.markdown(f"**Category:** `{row['category_name']}` | **Condition:** `{row['item_condition']}`")
                     st.markdown(f"**Type:** `{row['listing_type']}`")
+                    if row['course_mapping']:
+                        st.markdown(f"📖 Mapped Course Code: **`{row['course_mapping']}`**")
                     st.markdown(f"**Description:** *{row['description']}*")
                     st.markdown(f"📍 Location: **{row['hostel_block']} - Room {row['room_number']}**")
                     
                 with col_contact:
-                    # Prices & Highest Bids
-                    st.markdown(f"### Base Price: ₹{row['base_price']:.2f}")
-                    st.markdown(f"##### Highest Offer: **₹{row['current_highest_offer']:.2f}**")
-                    if row['listing_type'] == 'RENT':
-                        st.markdown(f"Daily Rent: **₹{row['daily_rental_rate']:.2f}/day**")
+                    if row['listing_type'] == 'BOOK_DONATION':
+                        st.markdown("### Cost: **FREE (DONATION)**")
+                        st.markdown("🎗️ Support junior learning initiative")
+                    else:
+                        st.markdown(f"### Base Price: ₹{row['base_price']:.2f}")
+                        st.markdown(f"##### Highest Offer: **₹{row['current_highest_offer']:.2f}**")
+                        if row['listing_type'] == 'RENT':
+                            st.markdown(f"Daily Rent: **₹{row['daily_rental_rate']:.2f}/day**")
                     
                     st.markdown(f"👤 Seller: **{row['seller_name']}**")
                     
-                    # Feature 4: Click to Chat WhatsApp Direct Integration API
+                    # WhatsApp Redirection
                     encoded_msg = urllib.parse.quote(f"Hello {row['seller_name']}, I am interested in your asset '{row['title']}' (ID: {row['item_id']}) listed on IIT Ropar InstiMart.")
                     whatsapp_url = f"https://wa.me/91{row['seller_phone']}?text={encoded_msg}"
                     st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">💬 Chat on WhatsApp</button></a>', unsafe_allow_html=True)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
+# New Tab: Semester Book Bank (Course code mappings)
 with tab2:
+    st.header("📖 Semester Textbook Bank & Course Notes lookup")
+    st.markdown("Find textbooks, manuals, and exam notes mapped directly to IIT Ropar course curriculum codes.")
+    
+    courses_list = ["ALL"] + [f"{r[0]} - {r[1]}" for r in conn.cursor().execute("SELECT course_code, course_title FROM courses").fetchall()]
+    course_filter = st.selectbox("Select IIT Ropar Course to search books", courses_list)
+    
+    query_bank = '''
+        SELECT i.item_id, i.title, i.course_mapping, c.course_title, i.base_price, i.listing_type, 
+               i.item_condition, i.image_url, u.full_name, u.hostel_block, u.room_number, u.phone
+        FROM item_listings i
+        JOIN courses c ON i.course_mapping = c.course_code
+        JOIN users u ON i.seller_id = u.user_id
+        WHERE i.status = 'AVAILABLE'
+    '''
+    
+    if course_filter != "ALL":
+        selected_code = course_filter.split(" - ")[0]
+        query_bank += f" AND i.course_mapping = '{selected_code}'"
+        
+    df_bank = pd.read_sql_query(query_bank, conn)
+    
+    if df_bank.empty:
+        st.info("No textbooks currently listed for this course code.")
+    else:
+        for idx, row in df_bank.iterrows():
+            with st.container():
+                st.markdown(f'<div class="item-card">', unsafe_allow_html=True)
+                col_img, col_info, col_contact = st.columns([1, 2, 1])
+                with col_img:
+                    img_lnk = row['image_url'] if row['image_url'] else 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80'
+                    st.image(img_lnk, use_column_width=True)
+                with col_info:
+                    st.subheader(f"{row['title']} (Book ID: {row['item_id']})")
+                    st.markdown(f"📚 Course: **`{row['course_mapping']}` - {row['course_title']}**")
+                    st.markdown(f"**Condition:** `{row['item_condition']}` | **Type:** `{row['listing_type']}`")
+                    st.markdown(f"📍 Location: **{row['hostel_block']} - Room {row['room_number']}**")
+                with col_contact:
+                    if row['listing_type'] == 'BOOK_DONATION':
+                        st.markdown("### Price: **FREE (DONATION)**")
+                    else:
+                        st.markdown(f"### Price: ₹{row['base_price']:.2f}")
+                    st.markdown(f"👤 Provider: **{row['full_name']}**")
+                    encoded_msg = urllib.parse.quote(f"Hello {row['full_name']}, I need your book '{row['title']}' listed for course {row['course_mapping']} on InstiMart.")
+                    whatsapp_url = f"https://wa.me/91{row['phone']}?text={encoded_msg}"
+                    st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">💬 Claim Book</button></a>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+with tab3:
     st.header("List an Asset for Sale or Rent")
     if not st.session_state.logged_in:
         st.warning("⚠️ Access Denied: Please authenticate via the Sidebar Login Console to post listings.")
@@ -227,10 +279,12 @@ with tab2:
                     3: 'Textbooks & Course Material', 4: 'Electronics & Gadgets', 
                     5: 'Hostel Furniture & Decor'
                 }[x])
-                listing_type = st.selectbox("Type of Listing", ["SALE", "RENT"])
-                # Feature 1: Image URL Input
+                listing_type = st.selectbox("Type of Listing", ["SALE", "RENT", "BOOK_DONATION"])
                 image_input_url = st.text_input("Item Image URL (Optional)", placeholder="Paste Unsplash/Image web link here...")
             with col2:
+                # Retrieve course codes dynamically from database
+                db_courses = [r[0] for r in conn.cursor().execute("SELECT course_code FROM courses").fetchall()]
+                course_mapping = st.selectbox("IIT Ropar Course Mapping (Textbooks only - Optional)", ["None"] + db_courses)
                 price = st.number_input("Base Selling Price / Deposit (₹)", min_value=0.0, step=100.0, value=500.0)
                 daily_rate = st.number_input("Daily Rental Rate (₹) [If RENT]", min_value=0.0, step=10.0, value=0.0)
                 condition = st.selectbox("Item Condition", ["LIKE_NEW", "GOOD", "FAIR", "WELL_USED"])
@@ -242,15 +296,16 @@ with tab2:
                     st.error("Title is required.")
                 else:
                     img_to_save = image_input_url if image_input_url else 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80'
+                    course_code_to_save = None if course_mapping == "None" else course_mapping
                     cursor = conn.cursor()
                     cursor.execute('''
-                        INSERT INTO item_listings (seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, image_url)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (st.session_state.user_id, category_id, title, description, price, listing_type, daily_rate, condition, img_to_save))
+                        INSERT INTO item_listings (seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, image_url, course_mapping)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (st.session_state.user_id, category_id, title, description, price, listing_type, daily_rate, condition, img_to_save, course_code_to_save))
                     conn.commit()
                     st.success("Listing published successfully!")
 
-with tab3:
+with tab4:
     st.header("⚖️ Live Negotiation & Bidding Console")
     if not st.session_state.logged_in:
         st.warning("⚠️ Access Denied: Please authenticate to place bids on campus items.")
@@ -288,7 +343,7 @@ with tab3:
             df_bids = pd.read_sql_query(query_bids, conn)
             st.dataframe(df_bids, use_container_width=True, hide_index=True)
 
-with tab4:
+with tab5:
     st.header("Settle Deal Ledger")
     if not st.session_state.logged_in:
         st.warning("⚠️ Access Denied: Please authenticate to confirm purchase transactions.")
@@ -314,8 +369,8 @@ with tab4:
                 except Exception as e:
                     st.error(f"Execution Error: {e}")
 
-# Feature 3: Personal Student Dashboard (Self profiles & Active bids history)
-with tab5:
+# Personal Student Dashboard
+with tab6:
     st.header("👤 My Campus InstiMart Dashboard")
     if not st.session_state.logged_in:
         st.warning("⚠️ Access Denied: Please authenticate to view your personal activity reports.")
@@ -347,7 +402,7 @@ with tab5:
         df_my_bids = pd.read_sql_query(query_my_bids, conn)
         st.dataframe(df_my_bids, use_container_width=True, hide_index=True)
 
-with tab6:
+with tab7:
     st.header("🎗️ Campus Welfare & Charity Fund Dashboard")
     st.markdown("Every successful transaction allocates **2% of the deal value** to support nearby orphanages and social welfare projects.")
     
