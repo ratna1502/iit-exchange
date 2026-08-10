@@ -60,12 +60,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App Connection Setup - Dynamic path directory to persist sqlite file outside ephemeral repo folder
-# Render allows /opt/render/project/src/data or /tmp dir to prevent reset during runtime rebuilds
-DB_DIR = "/opt/render/project/src/data"
-if not os.path.exists(DB_DIR):
-    DB_DIR = "." # Fallback to current local directory
-DB_PATH = os.path.join(DB_DIR, "iit_exchange.db")
+# App Connection Setup - Rerouted to default root to prevent mount errors
+DB_PATH = "iit_exchange.db"
 
 def get_db():
     return sqlite3.connect(DB_PATH)

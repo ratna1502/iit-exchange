@@ -2,71 +2,78 @@ import sqlite3
 import os
 
 def setup_database():
-    # Setup same writeable path configuration for ingestion seeds
-    DB_DIR = "/opt/render/project/src/data"
-    if not os.path.exists(DB_DIR):
-        DB_DIR = "."
-    DB_PATH = os.path.join(DB_DIR, "iit_exchange.db")
+    # Store SQLite file safely inside repo root
+    DB_PATH = "iit_exchange.db"
+    
+    # Check if database file already exists to prevent resets
+    db_exists = os.path.exists(DB_PATH)
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    with open('schema.sql', 'r') as f:
-        cursor.executescript(f.read())
+    if not db_exists:
+        print("Initial deployment database creation...")
+        with open('schema.sql', 'r') as f:
+            cursor.executescript(f.read())
+            
+        cursor.executemany('''
+            INSERT OR IGNORE INTO categories (category_id, category_name) VALUES (?, ?)
+        ''', [
+            (1, 'Bicycles & Transport'),
+            (2, 'Room Coolers & Appliances'),
+            (3, 'Textbooks & Course Material'),
+            (4, 'Electronics & Gadgets'),
+            (5, 'Hostel Furniture & Decor')
+        ])
         
-    cursor.executemany('''
-        INSERT OR IGNORE INTO categories (category_id, category_name) VALUES (?, ?)
-    ''', [
-        (1, 'Bicycles & Transport'),
-        (2, 'Room Coolers & Appliances'),
-        (3, 'Textbooks & Course Material'),
-        (4, 'Electronics & Gadgets'),
-        (5, 'Hostel Furniture & Decor')
-    ])
-    
-    # Seeding courses list (IIT Ropar Course Codes)
-    cursor.executemany('''
-        INSERT OR IGNORE INTO courses (course_code, course_title, department) VALUES (?, ?, ?)
-    ''', [
-        ('CSL201', 'Database Management Systems', 'CSE'),
-        ('MAL101', 'Calculus & Linear Algebra', 'Maths'),
-        ('EEL201', 'Signals and Systems', 'EE'),
-        ('CSL301', 'Design and Analysis of Algorithms', 'CSE')
-    ])
-    
-    # Seeding users with passwords
-    cursor.executemany('''
-        INSERT OR IGNORE INTO users (user_id, roll_number, full_name, email, phone, hostel_block, room_number, user_password)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', [
-        (1, '2022CSB1005', 'Rohan Sharma', '2022csb1005@iitropar.ac.in', '9876543210', 'Chenab Hostel', 'B-304', 'rohan123'),
-        (2, '2023CSB1001', 'Ratna Kumari', '2023csb1001@iitropar.ac.in', '9123456789', 'Sutlej Hostel', 'A-102', 'ratna123'),
-        (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123'),
-        (4, '2026DSS1048', 'Ratna Singh', '2026dss1048@iitrpr.ac.in', '8939553662', 'Chenab Hostel', '248', 'lit@0445')
-    ])
-    
-    # Seeding items with premium image links (Fixed cooler image link)
-    cursor.executemany('''
-        INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status, image_url, course_mapping)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', [
-        (1, 1, 1, 'Hero Sprint 21-Speed Gear Bicycle', 'Good condition, new tires.', 3500.0, 'SALE', 0.0, 'GOOD', 'AVAILABLE', 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80', None),
-        (2, 3, 2, 'Symphony 45L Desert Air Cooler', 'Perfect for summer.', 2500.0, 'RENT', 50.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1621259182978-f09e5e2bc090?auto=format&fit=crop&w=400&q=80', None),
-        (3, 1, 3, 'Korth Database System Concepts (7th Ed)', 'Best textbook for CSL201 course project preparation. Minimal markings.', 600.0, 'SALE', 0.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80', 'CSL201'),
-        (4, 2, 3, 'Thomas Calculus Hardcover Textbook', 'MAL101 official reference guide. Free donation for needy juniors.', 0.0, 'BOOK_DONATION', 0.0, 'GOOD', 'AVAILABLE', 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=400&q=80', 'MAL101')
-    ])
-    
-    # Seeding initial bids
-    cursor.executemany('''
-        INSERT OR IGNORE INTO bids (bid_id, item_id, buyer_id, bid_amount, bid_status)
-        VALUES (?, ?, ?, ?, ?)
-    ''', [
-        (1, 1, 2, 3600.0, 'PENDING')
-    ])
-    
-    conn.commit()
+        # Seeding courses list
+        cursor.executemany('''
+            INSERT OR IGNORE INTO courses (course_code, course_title, department) VALUES (?, ?, ?)
+        ''', [
+            ('CSL201', 'Database Management Systems', 'CSE'),
+            ('MAL101', 'Calculus & Linear Algebra', 'Maths'),
+            ('EEL201', 'Signals and Systems', 'EE'),
+            ('CSL301', 'Design and Analysis of Algorithms', 'CSE')
+        ])
+        
+        # Seeding standard users
+        cursor.executemany('''
+            INSERT OR IGNORE INTO users (user_id, roll_number, full_name, email, phone, hostel_block, room_number, user_password)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            (1, '2022CSB1005', 'Rohan Sharma', '2022csb1005@iitropar.ac.in', '9876543210', 'Chenab Hostel', 'B-304', 'rohan123'),
+            (2, '2023CSB1001', 'Ratna Kumari', '2023csb1001@iitropar.ac.in', '9123456789', 'Sutlej Hostel', 'A-102', 'ratna123'),
+            (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123'),
+            (4, '2026DSS1048', 'Ratna Singh', '2026dss1048@iitrpr.ac.in', '8939553662', 'Chenab Hostel', '248', 'lit@0445')
+        ])
+        
+        # Seeding items with premium links
+        cursor.executemany('''
+            INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status, image_url, course_mapping)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            (1, 1, 1, 'Hero Sprint 21-Speed Gear Bicycle', 'Good condition, new tires.', 3500.0, 'SALE', 0.0, 'GOOD', 'AVAILABLE', 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80', None),
+            (2, 3, 2, 'Symphony 45L Desert Air Cooler', 'Perfect for summer.', 2500.0, 'RENT', 50.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1621259182978-f09e5e2bc090?auto=format&fit=crop&w=400&q=80', None),
+            (3, 1, 3, 'Korth Database System Concepts (7th Ed)', 'Best textbook for CSL201 course project preparation. Minimal markings.', 600.0, 'SALE', 0.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80', 'CSL201'),
+            (4, 2, 3, 'Thomas Calculus Hardcover Textbook', 'MAL101 official reference guide. Free donation for needy juniors.', 0.0, 'BOOK_DONATION', 0.0, 'GOOD', 'AVAILABLE', 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=400&q=80', 'MAL101')
+        ])
+        
+        # Seeding initial bids
+        cursor.executemany('''
+            INSERT OR IGNORE INTO bids (bid_id, item_id, buyer_id, bid_amount, bid_status)
+            VALUES (?, ?, ?, ?, ?)
+        ''', [
+            (1, 1, 2, 3600.0, 'PENDING')
+        ])
+        conn.commit()
+        print("Database schema successfully generated and seeded!")
+    else:
+        # Schema tables safe validation checks
+        cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, roll_number TEXT NOT NULL UNIQUE, full_name TEXT, email TEXT UNIQUE, phone TEXT, hostel_block TEXT, room_number TEXT, user_password TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        conn.commit()
+        print("Database already exists. Retaining registered student data accounts.")
+        
     conn.close()
-    print("Database Book Bank seeds successfully updated in persistent folder!")
 
 if __name__ == '__main__':
     setup_database()
