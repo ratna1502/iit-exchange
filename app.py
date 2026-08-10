@@ -122,9 +122,10 @@ if not st.session_state.logged_in:
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
-            # Extremely flexible email check helper logic to prevent false block alarms
             clean_email = reg_email.strip().lower()
-            is_valid_domain = clean_email.endswith("@iitropar.ac.in") or clean_email.endswith("@iitrpr.ac.in") or "ropar.ac.in" in clean_email or "rpr.ac.in" in clean_email
+            
+            # Simplified email validation logic parameters to reliably accept all academic inputs
+            is_valid_domain = "rpr.ac.in" in clean_email or "ropar.ac.in" in clean_email
             
             if not is_valid_domain:
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
