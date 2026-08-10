@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     roll_number TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE CHECK(email LIKE '%@iitropar.ac.in' OR email LIKE '%@iitrpr.ac.in'),
+    email TEXT NOT NULL UNIQUE CHECK(email LIKE '%iitropar.ac.in' OR email LIKE '%iitrpr.ac.in' OR email LIKE '%rpr.ac.in' OR email LIKE '%ropar.ac.in'),
     phone TEXT NOT NULL,
     hostel_block TEXT NOT NULL,
     room_number TEXT NOT NULL,
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS categories (
     category_name TEXT NOT NULL UNIQUE
 );
 
--- 3. Courses Table (Added for Semester Book Bank Mapping)
+-- 3. Courses Table
 CREATE TABLE IF NOT EXISTS courses (
-    course_code TEXT PRIMARY KEY CHECK(length(course_code) >= 5), -- e.g. CS201, PH101
+    course_code TEXT PRIMARY KEY CHECK(length(course_code) >= 5),
     course_title TEXT NOT NULL,
     department TEXT NOT NULL
 );
 
--- 4. Item Listings Table (Supporting book conditions and visual tags)
+-- 4. Item Listings Table
 CREATE TABLE IF NOT EXISTS item_listings (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
     seller_id INTEGER NOT NULL,
@@ -34,13 +34,13 @@ CREATE TABLE IF NOT EXISTS item_listings (
     title TEXT NOT NULL,
     description TEXT,
     base_price REAL NOT NULL CHECK(base_price >= 0),
-    listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT', 'BOOK_DONATION')), -- Added BOOK_DONATION type
+    listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT', 'BOOK_DONATION')),
     daily_rental_rate REAL DEFAULT 0.0,
     item_condition TEXT CHECK(item_condition IN ('LIKE_NEW', 'GOOD', 'FAIR', 'WELL_USED')),
     image_url TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80',
     status TEXT DEFAULT 'AVAILABLE' CHECK(status IN ('AVAILABLE', 'RESERVED', 'SOLD', 'RENTED')),
     allow_bids INTEGER DEFAULT 1 CHECK(allow_bids IN (0, 1)),
-    course_mapping TEXT, -- Links textbook listings directly to a Course Code
+    course_mapping TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(seller_id) REFERENCES users(user_id),
     FOREIGN KEY(category_id) REFERENCES categories(category_id),
@@ -119,7 +119,7 @@ SELECT
     u.room_number,
     u.email AS seller_email,
     u.phone AS seller_phone,
-    i.course_mapping -- Course Code parameter
+    i.course_mapping
 FROM item_listings i
 JOIN categories c ON i.category_id = c.category_id
 JOIN users u ON i.seller_id = u.user_id
