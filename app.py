@@ -74,7 +74,7 @@ auth_mode = st.sidebar.radio("Choose Action", ["Login", "Self Sign-Up / Register
 
 if not st.session_state.logged_in:
     if auth_mode == "Login":
-        login_email = st.sidebar.text_input("IIT Ropar Email", placeholder="roll_no@iitropar.ac.in")
+        login_email = st.sidebar.text_input("IIT Ropar Email", placeholder="roll_no@iitropar.ac.in").lower().strip()
         login_password = st.sidebar.text_input("Password", type="password")
         if st.sidebar.button("Login"):
             cursor = conn.cursor()
@@ -90,16 +90,16 @@ if not st.session_state.logged_in:
                 
     elif auth_mode == "Self Sign-Up / Register":
         st.sidebar.markdown("---")
-        reg_roll = st.sidebar.text_input("Roll Number (e.g. 2026DSS1048)")
+        reg_roll = st.sidebar.text_input("Roll Number (e.g. 2026DSS1048)").upper().strip()
         reg_name = st.sidebar.text_input("Full Name")
-        reg_email = st.sidebar.text_input("IIT Ropar Email (@iitropar.ac.in or @iitrpr.ac.in)")
+        reg_email = st.sidebar.text_input("IIT Ropar Email (@iitropar.ac.in or @iitrpr.ac.in)").lower().strip()
         reg_phone = st.sidebar.text_input("Phone Number")
         reg_hostel = st.sidebar.selectbox("Hostel Block", ["Chenab Hostel", "Sutlej Hostel", "Beas Hostel"])
         reg_room = st.sidebar.text_input("Room Number")
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
-            # Check domain pattern before DB transaction
+            # Check domain pattern safely using lowercase
             if not (reg_email.endswith("@iitropar.ac.in") or reg_email.endswith("@iitrpr.ac.in")):
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
             elif not (reg_roll and reg_name and reg_phone and reg_room and reg_password):
