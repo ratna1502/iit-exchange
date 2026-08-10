@@ -37,7 +37,7 @@ def setup_database():
         (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123')
     ])
     
-    # Seeding items with book mapping codes
+    # Seeding items with premium image links (Fixed cooler image link)
     cursor.executemany('''
         INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status, image_url, course_mapping)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -58,7 +58,7 @@ def setup_database():
     
     conn.commit()
     conn.close()
-    print("Database Book Bank seeds successfully inserted!")
+    print("Database Book Bank seeds successfully updated!")
 
 if __name__ == '__main__':
     setup_database()
