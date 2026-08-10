@@ -88,7 +88,7 @@ auth_mode = st.sidebar.radio("Choose Action", ["Login", "Self Sign-Up / Register
 
 if not st.session_state.logged_in:
     if auth_mode == "Login":
-        login_email = st.sidebar.text_input("IIT Ropar Email", placeholder="roll_no@iitropar.ac.in").lower().strip()
+        login_email = st.sidebar.text_input("IIT Ropar Email", placeholder="roll_no@iitropar.ac.in or @iitrpr.ac.in").lower().strip()
         login_password = st.sidebar.text_input("Password", type="password")
         if st.sidebar.button("Login"):
             cursor = conn.cursor()
@@ -116,6 +116,7 @@ if not st.session_state.logged_in:
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
+            # Fully supports both institutional email formats: @iitropar.ac.in or @iitrpr.ac.in
             if not (reg_email.endswith("@iitropar.ac.in") or reg_email.endswith("@iitrpr.ac.in")):
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
             elif not (reg_roll and reg_name and reg_phone and reg_room and reg_password):
@@ -215,7 +216,7 @@ with tab1:
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-# New Tab: Semester Book Bank (Course code mappings)
+# New Tab: Semester Book Bank
 with tab2:
     st.header("📖 Semester Textbook Bank & Course Notes lookup")
     st.markdown("Find textbooks, manuals, and exam notes mapped directly to IIT Ropar course curriculum codes.")
@@ -282,7 +283,6 @@ with tab3:
                 listing_type = st.selectbox("Type of Listing", ["SALE", "RENT", "BOOK_DONATION"])
                 image_input_url = st.text_input("Item Image URL (Optional)", placeholder="Paste Unsplash/Image web link here...")
             with col2:
-                # Retrieve course codes dynamically from database
                 db_courses = [r[0] for r in conn.cursor().execute("SELECT course_code FROM courses").fetchall()]
                 course_mapping = st.selectbox("IIT Ropar Course Mapping (Textbooks only - Optional)", ["None"] + db_courses)
                 price = st.number_input("Base Selling Price / Deposit (₹)", min_value=0.0, step=100.0, value=500.0)
