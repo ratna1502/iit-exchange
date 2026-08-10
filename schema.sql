@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS item_listings (
     listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT')),
     daily_rental_rate REAL DEFAULT 0.0,
     item_condition TEXT CHECK(item_condition IN ('LIKE_NEW', 'GOOD', 'FAIR', 'WELL_USED')),
-    image_url TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80', -- Default premium placeholder
+    image_url TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80',
     status TEXT DEFAULT 'AVAILABLE' CHECK(status IN ('AVAILABLE', 'RESERVED', 'SOLD', 'RENTED')),
     allow_bids INTEGER DEFAULT 1 CHECK(allow_bids IN (0, 1)),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -91,7 +91,7 @@ BEGIN
     END;
 END;
 
--- VIEW: Marketplace Active Feed showing highest bid if any
+-- VIEW: Marketplace Active Feed (Added i.description explicitly)
 CREATE VIEW IF NOT EXISTS active_marketplace_feed AS
 SELECT 
     i.item_id,
@@ -101,14 +101,14 @@ SELECT
     i.listing_type,
     i.daily_rental_rate,
     i.item_condition,
+    i.description, -- Added column description to resolve KeyError
     i.image_url,
     COALESCE(MAX(b.bid_amount), i.base_price) AS current_highest_offer,
     u.full_name AS seller_name,
     u.hostel_block,
     u.room_number,
     u.email AS seller_email,
-    u.phone AS seller_phone,
-    i.status
+    u.phone AS seller_phone
 FROM item_listings i
 JOIN categories c ON i.category_id = c.category_id
 JOIN users u ON i.seller_id = u.user_id
