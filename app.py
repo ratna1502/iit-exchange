@@ -124,7 +124,7 @@ if not st.session_state.logged_in:
         if st.sidebar.button("Register & Activate Account"):
             clean_email = reg_email.strip().lower()
             
-            # Simplified email validation logic parameters to reliably accept all academic inputs
+            # FIXED: Extremely relaxed checks accepting both rpr.ac.in and ropar.ac.in domains
             is_valid_domain = "rpr.ac.in" in clean_email or "ropar.ac.in" in clean_email
             
             if not is_valid_domain:
