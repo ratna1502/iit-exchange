@@ -17,13 +17,14 @@ def setup_database():
         (5, 'Hostel Furniture & Decor')
     ])
     
+    # Seeding users with passwords
     cursor.executemany('''
-        INSERT OR IGNORE INTO users (user_id, roll_number, full_name, email, phone, hostel_block, room_number)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO users (user_id, roll_number, full_name, email, phone, hostel_block, room_number, user_password)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
-        (1, '2022CSB1005', 'Rohan Sharma', '2022csb1005@iitropar.ac.in', '9876543210', 'Chenab Hostel', 'B-304'),
-        (2, '2023CSB1001', 'Ratna Kumari', '2023csb1001@iitropar.ac.in', '9123456789', 'Sutlej Hostel', 'A-102'),
-        (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201')
+        (1, '2022CSB1005', 'Rohan Sharma', '2022csb1005@iitropar.ac.in', '9876543210', 'Chenab Hostel', 'B-304', 'rohan123'),
+        (2, '2023CSB1001', 'Ratna Kumari', '2023csb1001@iitropar.ac.in', '9123456789', 'Sutlej Hostel', 'A-102', 'ratna123'),
+        (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123')
     ])
     
     cursor.executemany('''
@@ -37,7 +38,7 @@ def setup_database():
     
     conn.commit()
     conn.close()
-    print("Database initialized and sample data seeded successfully!")
+    print("Database initialized and sample data seeded successfully with security credentials!")
 
 if __name__ == '__main__':
     setup_database()
