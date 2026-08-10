@@ -94,7 +94,11 @@ if not st.session_state.logged_in:
         reg_name = st.sidebar.text_input("Full Name")
         reg_email = st.sidebar.text_input("IIT Ropar Email (@iitropar.ac.in or @iitrpr.ac.in)").lower().strip()
         reg_phone = st.sidebar.text_input("Phone Number")
-        reg_hostel = st.sidebar.selectbox("Hostel Block", ["Chenab Hostel", "Sutlej Hostel", "Beas Hostel"])
+        # Added new requested IIT Ropar Hostels (Raavi, Bramhaputra, Chintpurni)
+        reg_hostel = st.sidebar.selectbox("Hostel Block", [
+            "Chenab Hostel", "Sutlej Hostel", "Beas Hostel", 
+            "Raavi Hostel", "Bramhaputra Hostel", "Chintpurni Hostel"
+        ])
         reg_room = st.sidebar.text_input("Room Number")
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
