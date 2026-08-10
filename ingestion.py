@@ -27,14 +27,14 @@ def setup_database():
         (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123')
     ])
     
-    # Updated column from price -> base_price
+    # Seeding items with premium image links
     cursor.executemany('''
-        INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO item_listings (item_id, seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, status, image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', [
-        (1, 1, 1, 'Hero Sprint 21-Speed Gear Bicycle', 'Good condition, new tires.', 3500.0, 'SALE', 0.0, 'GOOD', 'AVAILABLE'),
-        (2, 3, 2, 'Symphony 45L Desert Air Cooler', 'Perfect for summer.', 2500.0, 'RENT', 50.0, 'LIKE_NEW', 'AVAILABLE'),
-        (3, 1, 3, 'CLRS Algorithms Book (4th Ed)', 'Hardcover, clean pages.', 800.0, 'SALE', 0.0, 'LIKE_NEW', 'AVAILABLE')
+        (1, 1, 1, 'Hero Sprint 21-Speed Gear Bicycle', 'Good condition, new tires.', 3500.0, 'SALE', 0.0, 'GOOD', 'AVAILABLE', 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80'),
+        (2, 3, 2, 'Symphony 45L Desert Air Cooler', 'Perfect for summer.', 2500.0, 'RENT', 50.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1621259182978-f09e5e2bc090?auto=format&fit=crop&w=400&q=80'),
+        (3, 1, 3, 'CLRS Algorithms Book (4th Ed)', 'Hardcover, clean pages.', 800.0, 'SALE', 0.0, 'LIKE_NEW', 'AVAILABLE', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80')
     ])
     
     # Seeding initial bids
@@ -48,7 +48,7 @@ def setup_database():
     
     conn.commit()
     conn.close()
-    print("Database initialized and sample data seeded successfully with bidding engines!")
+    print("Database initialized successfully with advanced image features!")
 
 if __name__ == '__main__':
     setup_database()

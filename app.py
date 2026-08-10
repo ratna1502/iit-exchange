@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import urllib.parse
 
 # Set Page Config with clean layout
 st.set_page_config(page_title="IIT Ropar InstiMart", page_icon="🛒", layout="wide")
@@ -31,6 +32,19 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #004b93;
         color: white;
+    }
+    /* Card design for Marketplace items */
+    .item-card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.2rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        border: 1px solid #eef2f5;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s;
+    }
+    .item-card:hover {
+        transform: translateY(-5px);
     }
     /* Metric Card Styling */
     .metric-card {
@@ -68,7 +82,7 @@ if 'user_id' not in st.session_state:
 if 'user_name' not in st.session_state:
     st.session_state.user_name = ""
 
-# Sidebar Auth Console: Login & Register toggles
+# Sidebar Auth Console
 st.sidebar.header("🔑 Student Authentication Console")
 auth_mode = st.sidebar.radio("Choose Action", ["Login", "Self Sign-Up / Register"])
 
@@ -94,7 +108,6 @@ if not st.session_state.logged_in:
         reg_name = st.sidebar.text_input("Full Name")
         reg_email = st.sidebar.text_input("IIT Ropar Email (@iitropar.ac.in or @iitrpr.ac.in)").lower().strip()
         reg_phone = st.sidebar.text_input("Phone Number")
-        # Added new requested IIT Ropar Hostels (Raavi, Bramhaputra, Chintpurni)
         reg_hostel = st.sidebar.selectbox("Hostel Block", [
             "Chenab Hostel", "Sutlej Hostel", "Beas Hostel", 
             "Raavi Hostel", "Bramhaputra Hostel", "Chintpurni Hostel"
@@ -103,7 +116,6 @@ if not st.session_state.logged_in:
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
-            # Check domain pattern safely using lowercase
             if not (reg_email.endswith("@iitropar.ac.in") or reg_email.endswith("@iitrpr.ac.in")):
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
             elif not (reg_roll and reg_name and reg_phone and reg_room and reg_password):
@@ -127,31 +139,78 @@ else:
         st.session_state.user_name = ""
         st.rerun()
 
-# Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+# Tabs (Added My Dashboard Tab)
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🛍️ Browse InstiMart", 
     "➕ Post New Ad (Login Required)", 
     "⚖️ Live Bidding Panel",
     "🤝 Settle Deal", 
+    "👤 My Dashboard",
     "🎗️ Campus Charity Ledger"
 ])
 
 with tab1:
     st.header("Active Campus Listings")
-    categories = ["ALL"] + [row[0] for row in conn.cursor().execute("SELECT category_name FROM categories").fetchall()]
-    category_filter = st.selectbox("Filter by Category", categories)
     
-    query = "SELECT * FROM active_marketplace_feed"
+    # Feature 2: Search, Sort and Filter Engine
+    col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
+    with col_s1:
+        search_query = st.text_input("🔍 Search items (e.g. cycle, cooler, book)", placeholder="Type item name...")
+    with col_s2:
+        categories = ["ALL"] + [row[0] for row in conn.cursor().execute("SELECT category_name FROM categories").fetchall()]
+        category_filter = st.selectbox("Category", categories)
+    with col_s3:
+        sort_by = st.selectbox("Sort By Price", ["Default", "Price: Low to High", "Price: High to Low"])
+        
+    query = "SELECT * FROM active_marketplace_feed WHERE 1=1"
     if category_filter != "ALL":
-        query += f" WHERE category_name = '{category_filter}'"
+        query += f" AND category_name = '{category_filter}'"
+    if search_query:
+        query += f" AND (title LIKE '%{search_query}%' OR description LIKE '%{search_query}%')"
+        
+    if sort_by == "Price: Low to High":
+        query += " ORDER BY base_price ASC"
+    elif sort_by == "Price: High to Low":
+        query += " ORDER BY base_price DESC"
         
     df_feed = pd.read_sql_query(query, conn)
-    df_feed.columns = [
-        "Item ID", "Title", "Category", "Base Price (₹)", "Listing Type", 
-        "Rental Rate (₹/day)", "Condition", "Highest Offer (₹)", "Seller Name", 
-        "Hostel Block", "Room Number", "Seller Email", "Seller Phone"
-    ]
-    st.dataframe(df_feed, use_container_width=True, hide_index=True)
+    
+    # Visual Enhancements: Cards Grid + Feature 1 & 4 (Images & WhatsApp API Redirects)
+    if df_feed.empty:
+        st.info("No campus items matching the search query.")
+    else:
+        for idx, row in df_feed.iterrows():
+            with st.container():
+                st.markdown(f'<div class="item-card">', unsafe_allow_html=True)
+                col_img, col_info, col_contact = st.columns([1, 2, 1])
+                
+                with col_img:
+                    # Feature 1: Image Visual Rendering
+                    img_link = row['image_url'] if row['image_url'] else 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80'
+                    st.image(img_link, use_container_width=True)
+                    
+                with col_info:
+                    st.subheader(f"{row['title']} (ID: {row['item_id']})")
+                    st.markdown(f"**Category:** `{row['category_name']}` | **Condition:** `{row['item_condition']}`")
+                    st.markdown(f"**Type:** `{row['listing_type']}`")
+                    st.markdown(f"**Description:** *{row['description']}*")
+                    st.markdown(f"📍 Location: **{row['hostel_block']} - Room {row['room_number']}**")
+                    
+                with col_contact:
+                    # Prices & Highest Bids
+                    st.markdown(f"### Base Price: ₹{row['base_price']:.2f}")
+                    st.markdown(f"##### Highest Offer: **₹{row['current_highest_offer']:.2f}**")
+                    if row['listing_type'] == 'RENT':
+                        st.markdown(f"Daily Rent: **₹{row['daily_rental_rate']:.2f}/day**")
+                    
+                    st.markdown(f"👤 Seller: **{row['seller_name']}**")
+                    
+                    # Feature 4: Click to Chat WhatsApp Direct Integration API
+                    encoded_msg = urllib.parse.quote(f"Hello {row['seller_name']}, I am interested in your asset '{row['title']}' (ID: {row['item_id']}) listed on IIT Ropar InstiMart.")
+                    whatsapp_url = f"https://wa.me/91{row['seller_phone']}?text={encoded_msg}"
+                    st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">💬 Chat on WhatsApp</button></a>', unsafe_allow_html=True)
+                
+                st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
     st.header("List an Asset for Sale or Rent")
@@ -169,6 +228,8 @@ with tab2:
                     5: 'Hostel Furniture & Decor'
                 }[x])
                 listing_type = st.selectbox("Type of Listing", ["SALE", "RENT"])
+                # Feature 1: Image URL Input
+                image_input_url = st.text_input("Item Image URL (Optional)", placeholder="Paste Unsplash/Image web link here...")
             with col2:
                 price = st.number_input("Base Selling Price / Deposit (₹)", min_value=0.0, step=100.0, value=500.0)
                 daily_rate = st.number_input("Daily Rental Rate (₹) [If RENT]", min_value=0.0, step=10.0, value=0.0)
@@ -180,11 +241,12 @@ with tab2:
                 if not title:
                     st.error("Title is required.")
                 else:
+                    img_to_save = image_input_url if image_input_url else 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80'
                     cursor = conn.cursor()
                     cursor.execute('''
-                        INSERT INTO item_listings (seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (st.session_state.user_id, category_id, title, description, price, listing_type, daily_rate, condition))
+                        INSERT INTO item_listings (seller_id, category_id, title, description, base_price, listing_type, daily_rental_rate, item_condition, image_url)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (st.session_state.user_id, category_id, title, description, price, listing_type, daily_rate, condition, img_to_save))
                     conn.commit()
                     st.success("Listing published successfully!")
 
@@ -252,7 +314,40 @@ with tab4:
                 except Exception as e:
                     st.error(f"Execution Error: {e}")
 
+# Feature 3: Personal Student Dashboard (Self profiles & Active bids history)
 with tab5:
+    st.header("👤 My Campus InstiMart Dashboard")
+    if not st.session_state.logged_in:
+        st.warning("⚠️ Access Denied: Please authenticate to view your personal activity reports.")
+    else:
+        st.subheader(f"Activity Summary for {st.session_state.user_name}")
+        col_db1, col_db2, col_db3 = st.columns(3)
+        
+        cursor = conn.cursor()
+        my_listings_count = cursor.execute("SELECT COUNT(*) FROM item_listings WHERE seller_id = ?", (st.session_state.user_id,)).fetchone()[0]
+        my_active_bids_count = cursor.execute("SELECT COUNT(*) FROM bids WHERE buyer_id = ? AND bid_status = 'PENDING'", (st.session_state.user_id,)).fetchone()[0]
+        my_purchases_count = cursor.execute("SELECT COUNT(*) FROM transactions WHERE buyer_id = ?", (st.session_state.user_id,)).fetchone()[0]
+        
+        with col_db1:
+            st.markdown(f'<div class="metric-card"><h5>My Listings</h5><h2>{my_listings_count}</h2></div>', unsafe_allow_html=True)
+        with col_db2:
+            st.markdown(f'<div class="metric-card"><h5>My Active Offers</h5><h2>{my_active_bids_count}</h2></div>', unsafe_allow_html=True)
+        with col_db3:
+            st.markdown(f'<div class="metric-card"><h5>Purchased Items</h5><h2>{my_purchases_count}</h2></div>', unsafe_allow_html=True)
+            
+        # Displaying Lists
+        st.markdown("---")
+        st.subheader("My Item Listings Status")
+        query_my_items = f"SELECT item_id AS 'Item ID', title AS 'Item Name', base_price AS 'Base Price (₹)', status AS 'Status' FROM item_listings WHERE seller_id = {st.session_state.user_id}"
+        df_my_items = pd.read_sql_query(query_my_items, conn)
+        st.dataframe(df_my_items, use_container_width=True, hide_index=True)
+        
+        st.subheader("My Bid Offers history")
+        query_my_bids = f"SELECT b.bid_id AS 'Bid ID', i.title AS 'Item Name', b.bid_amount AS 'My Offer (₹)', b.bid_status AS 'Bid Status' FROM bids b JOIN item_listings i ON b.item_id = i.item_id WHERE b.buyer_id = {st.session_state.user_id}"
+        df_my_bids = pd.read_sql_query(query_my_bids, conn)
+        st.dataframe(df_my_bids, use_container_width=True, hide_index=True)
+
+with tab6:
     st.header("🎗️ Campus Welfare & Charity Fund Dashboard")
     st.markdown("Every successful transaction allocates **2% of the deal value** to support nearby orphanages and social welfare projects.")
     

@@ -1,6 +1,6 @@
 PRAGMA foreign_keys = ON;
 
--- 1. Users Table (Updated CHECK constraint for both email patterns)
+-- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     roll_number TEXT NOT NULL UNIQUE,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS categories (
     category_name TEXT NOT NULL UNIQUE
 );
 
--- 3. Item Listings Table
+-- 3. Item Listings Table (Added image_url column)
 CREATE TABLE IF NOT EXISTS item_listings (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
     seller_id INTEGER NOT NULL,
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS item_listings (
     listing_type TEXT NOT NULL CHECK(listing_type IN ('SALE', 'RENT')),
     daily_rental_rate REAL DEFAULT 0.0,
     item_condition TEXT CHECK(item_condition IN ('LIKE_NEW', 'GOOD', 'FAIR', 'WELL_USED')),
+    image_url TEXT DEFAULT 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80', -- Default premium placeholder
     status TEXT DEFAULT 'AVAILABLE' CHECK(status IN ('AVAILABLE', 'RESERVED', 'SOLD', 'RENTED')),
     allow_bids INTEGER DEFAULT 1 CHECK(allow_bids IN (0, 1)),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -100,12 +101,14 @@ SELECT
     i.listing_type,
     i.daily_rental_rate,
     i.item_condition,
+    i.image_url,
     COALESCE(MAX(b.bid_amount), i.base_price) AS current_highest_offer,
     u.full_name AS seller_name,
     u.hostel_block,
     u.room_number,
     u.email AS seller_email,
-    u.phone AS seller_phone
+    u.phone AS seller_phone,
+    i.status
 FROM item_listings i
 JOIN categories c ON i.category_id = c.category_id
 JOIN users u ON i.seller_id = u.user_id
