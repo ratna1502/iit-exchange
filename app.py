@@ -143,30 +143,35 @@ else:
         st.session_state.chat_history = []
         st.rerun()
 
-# Feature: Sidebar Floating Gemini AI Assistant Chatbot (Active Helper)
+# Feature: Sidebar Floating Gemini AI Assistant Chatbot
 st.sidebar.markdown("---")
 st.sidebar.header("🤖 InstiMart AI Campus Advisor")
 ai_query = st.sidebar.text_input("Ask AI (e.g. cycle rates, book requirements)", placeholder="Ask campus helper...")
 if st.sidebar.button("Send Query"):
     if ai_query:
+        # Gracefully read secrets avoiding warning messages throw
         try:
-            api_key = st.secrets.get("GEMINI_API_KEY", "")
-            if not api_key:
-                api_key = "AIzaSyD-MOCK-API-KEY-VALUE"
+            api_key = ""
+            if "GEMINI_API_KEY" in st.secrets:
+                api_key = st.secrets["GEMINI_API_KEY"]
+            
+            if api_key and not api_key.startswith("AIzaSy"):
+                raise ValueError("Placeholder API key detected")
+                
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-pro')
             prompt = f"You are a helpful campus AI assistant for IIT Ropar. A student is asking: '{ai_query}'. Give a brief, helpful 1-2 sentence response. Be concise."
             response = model.generate_content(prompt)
             st.session_state.chat_history.append((ai_query, response.text))
         except Exception as e:
-            # Fallback advice rules in offline mode
-            fallback_ans = f"For items related to '{ai_query}', please filter categories in the browse tab. The average campus rate for coolers is ₹2000-3000, and books can be found mapping course codes."
+            # Clean offline academic advisor fallback
+            fallback_ans = f"For items related to '{ai_query}', please filter categories in the browse tab. Bicycles are average ₹2500-3500, coolers ₹2500, and course textbooks can be claimed at Semester Book Bank."
             st.session_state.chat_history.append((ai_query, fallback_ans))
 
 # Render Sidebar Chat History
 if st.session_state.chat_history:
     st.sidebar.markdown("**Chat Log:**")
-    for q, a in list(st.session_state.chat_history)[-2:]: # Show last 2 chat exchanges
+    for q, a in list(st.session_state.chat_history)[-2:]:
         st.sidebar.info(f"💬 **You:** {q}\n\n🤖 **AI:** {a}")
     if st.sidebar.button("Clear Chat"):
         st.session_state.chat_history = []
@@ -314,10 +319,13 @@ with tab3:
                 st.error("Please enter an asset name for the AI to process.")
             else:
                 try:
-                    api_key = st.secrets.get("GEMINI_API_KEY", "")
-                    if not api_key:
-                        api_key = "AIzaSyD-TEST-KEY-PLACEHOLDER"
-                    
+                    api_key = ""
+                    if "GEMINI_API_KEY" in st.secrets:
+                        api_key = st.secrets["GEMINI_API_KEY"]
+                        
+                    if api_key and not api_key.startswith("AIzaSy"):
+                        raise ValueError("Placeholder API key")
+                        
                     genai.configure(api_key=api_key)
                     model = genai.GenerativeModel('gemini-pro')
                     prompt_query = f"Write a premium, short, campus-marketplace listing description (max 2 sentences) for a student selling this item: '{ai_input_title}' at IIT Ropar. Emphasize condition and hostel convenience."
