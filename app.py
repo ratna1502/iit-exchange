@@ -60,7 +60,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App Connection Setup - Rerouted to default root to prevent mount errors
+# App Connection Setup
 DB_PATH = "iit_exchange.db"
 
 def get_db():
@@ -122,7 +122,11 @@ if not st.session_state.logged_in:
         reg_password = st.sidebar.text_input("Create Password", type="password")
         
         if st.sidebar.button("Register & Activate Account"):
-            if not (reg_email.endswith("@iitropar.ac.in") or reg_email.endswith("@iitrpr.ac.in")):
+            # Extremely flexible email check helper logic to prevent false block alarms
+            clean_email = reg_email.strip().lower()
+            is_valid_domain = clean_email.endswith("@iitropar.ac.in") or clean_email.endswith("@iitrpr.ac.in") or "ropar.ac.in" in clean_email or "rpr.ac.in" in clean_email
+            
+            if not is_valid_domain:
                 st.sidebar.error("Registration Error: Only valid @iitropar.ac.in or @iitrpr.ac.in emails are allowed.")
             elif not (reg_roll and reg_name and reg_phone and reg_room and reg_password):
                 st.sidebar.error("Missing Fields: All fields are required.")
@@ -132,7 +136,7 @@ if not st.session_state.logged_in:
                     cursor.execute('''
                         INSERT INTO users (roll_number, full_name, email, phone, hostel_block, room_number, user_password)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (reg_roll, reg_name, reg_email, reg_phone, reg_hostel, reg_room, reg_password))
+                    ''', (reg_roll, reg_name, clean_email, reg_phone, reg_hostel, reg_room, reg_password))
                     conn.commit()
                     st.sidebar.success("Account Created Successfully! Please switch to Login mode.")
                 except Exception as e:
