@@ -185,9 +185,9 @@ with tab1:
                 col_img, col_info, col_contact = st.columns([1, 2, 1])
                 
                 with col_img:
-                    # Feature 1: Image Visual Rendering
+                    # Feature 1: Image Visual Rendering - Replaced use_container_width with use_column_width
                     img_link = row['image_url'] if row['image_url'] else 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=400&q=80'
-                    st.image(img_link, use_container_width=True)
+                    st.image(img_link, use_column_width=True)
                     
                 with col_info:
                     st.subheader(f"{row['title']} (ID: {row['item_id']})")
