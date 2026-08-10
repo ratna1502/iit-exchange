@@ -1,7 +1,14 @@
 import sqlite3
+import os
 
 def setup_database():
-    conn = sqlite3.connect('iit_exchange.db')
+    # Setup same writeable path configuration for ingestion seeds
+    DB_DIR = "/opt/render/project/src/data"
+    if not os.path.exists(DB_DIR):
+        DB_DIR = "."
+    DB_PATH = os.path.join(DB_DIR, "iit_exchange.db")
+    
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     with open('schema.sql', 'r') as f:
@@ -34,7 +41,8 @@ def setup_database():
     ''', [
         (1, '2022CSB1005', 'Rohan Sharma', '2022csb1005@iitropar.ac.in', '9876543210', 'Chenab Hostel', 'B-304', 'rohan123'),
         (2, '2023CSB1001', 'Ratna Kumari', '2023csb1001@iitropar.ac.in', '9123456789', 'Sutlej Hostel', 'A-102', 'ratna123'),
-        (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123')
+        (3, '2021EEB1040', 'Aman Verma', '2021eeb1040@iitropar.ac.in', '9988776655', 'Beas Hostel', 'C-201', 'aman123'),
+        (4, '2026DSS1048', 'Ratna Singh', '2026dss1048@iitrpr.ac.in', '8939553662', 'Chenab Hostel', '248', 'lit@0445')
     ])
     
     # Seeding items with premium image links (Fixed cooler image link)
@@ -58,7 +66,7 @@ def setup_database():
     
     conn.commit()
     conn.close()
-    print("Database Book Bank seeds successfully updated!")
+    print("Database Book Bank seeds successfully updated in persistent folder!")
 
 if __name__ == '__main__':
     setup_database()

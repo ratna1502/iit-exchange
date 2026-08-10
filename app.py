@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import urllib.parse
 import google.generativeai as genai
+import os
 
 # Set Page Config with clean layout
 st.set_page_config(page_title="IIT Ropar InstiMart", page_icon="🛒", layout="wide")
@@ -59,9 +60,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App Connection Setup
+# App Connection Setup - Dynamic path directory to persist sqlite file outside ephemeral repo folder
+# Render allows /opt/render/project/src/data or /tmp dir to prevent reset during runtime rebuilds
+DB_DIR = "/opt/render/project/src/data"
+if not os.path.exists(DB_DIR):
+    DB_DIR = "." # Fallback to current local directory
+DB_PATH = os.path.join(DB_DIR, "iit_exchange.db")
+
 def get_db():
-    return sqlite3.connect('iit_exchange.db')
+    return sqlite3.connect(DB_PATH)
 
 conn = get_db()
 
@@ -143,13 +150,12 @@ else:
         st.session_state.chat_history = []
         st.rerun()
 
-# Feature: Sidebar Floating Gemini AI Assistant Chatbot
+# Sidebar Floating Gemini AI Assistant Chatbot
 st.sidebar.markdown("---")
 st.sidebar.header("🤖 InstiMart AI Campus Advisor")
 ai_query = st.sidebar.text_input("Ask AI (e.g. cycle rates, book requirements)", placeholder="Ask campus helper...")
 if st.sidebar.button("Send Query"):
     if ai_query:
-        # Gracefully read secrets avoiding warning messages throw
         try:
             api_key = ""
             if "GEMINI_API_KEY" in st.secrets:
@@ -164,7 +170,6 @@ if st.sidebar.button("Send Query"):
             response = model.generate_content(prompt)
             st.session_state.chat_history.append((ai_query, response.text))
         except Exception as e:
-            # Clean offline academic advisor fallback
             fallback_ans = f"For items related to '{ai_query}', please filter categories in the browse tab. Bicycles are average ₹2500-3500, coolers ₹2500, and course textbooks can be claimed at Semester Book Bank."
             st.session_state.chat_history.append((ai_query, fallback_ans))
 
