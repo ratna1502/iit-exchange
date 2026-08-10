@@ -1,6 +1,6 @@
 PRAGMA foreign_keys = ON;
 
--- 1. Users Table
+-- 1. Users Table (Allows ropar, rpr, iitrpr, and iitropar domains securely)
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     roll_number TEXT NOT NULL UNIQUE,
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS categories (
     category_name TEXT NOT NULL UNIQUE
 );
 
--- 3. Courses Table
+-- 3. Courses Table (Required for Semester Book Bank Course Mapping)
 CREATE TABLE IF NOT EXISTS courses (
     course_code TEXT PRIMARY KEY CHECK(length(course_code) >= 5),
     course_title TEXT NOT NULL,
     department TEXT NOT NULL
 );
 
--- 4. Item Listings Table
+-- 4. Item Listings Table (Updated to include image_url, course_mapping, and BOOK_DONATION type)
 CREATE TABLE IF NOT EXISTS item_listings (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
     seller_id INTEGER NOT NULL,
@@ -101,7 +101,7 @@ BEGIN
     END;
 END;
 
--- VIEW: Marketplace Active Feed
+-- VIEW: Marketplace Active Feed (Updated view schema including description and image_url parameters)
 CREATE VIEW IF NOT EXISTS active_marketplace_feed AS
 SELECT 
     i.item_id,
